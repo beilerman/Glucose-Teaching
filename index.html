@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insulin Titration & AGP Simulation Tool</title>
+
+  <!-- Chart.js + Annotation Plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ─── Header ─────────────────────────────────────────────────────── -->
+    <header class="app-header">
+      <h1>Insulin Titration & Pattern Recognition Tool</h1>
+      <p>An interactive AGP-based simulation for medical students and residents.</p>
+    </header>
+
+    <!-- ─── Scenario Selector ──────────────────────────────────────────── -->
+    <div class="scenario-bar">
+      <label for="scenario-select">Clinical Case:</label>
+      <select id="scenario-select" aria-label="Select a clinical case"></select>
+      <div id="scenario-description" class="scenario-desc"></div>
+    </div>
+
+    <!-- ─── Main Two-Column Layout ─────────────────────────────────────── -->
+    <div class="main-grid">
+
+      <!-- Left Column: Patient Info + Intervention -->
+      <div>
+        <!-- Patient Card -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <h2 class="card-title">Patient Profile & Current Regimen</h2>
+          <div id="patient-info"></div>
+        </div>
+
+        <!-- Intervention Card -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <h2 class="card-title">Propose Adjustments</h2>
+          <div class="input-group">
+            <label for="basal-input">Basal Dose (units/day)</label>
+            <input type="number" id="basal-input" min="1" step="1" aria-label="Basal insulin dose">
+          </div>
+          <div class="input-group">
+            <label for="ic-ratio-input">I:C Ratio (1 unit per X grams carb)</label>
+            <input type="number" id="ic-ratio-input" min="1" step="1" aria-label="Insulin to carb ratio">
+          </div>
+          <div class="input-group">
+            <label for="isf-input">ISF (1 unit drops glucose X mg/dL)</label>
+            <input type="number" id="isf-input" min="1" step="1" aria-label="Insulin sensitivity factor">
+          </div>
+          <button id="simulate-btn" class="btn btn-primary">Simulate New Regimen</button>
+          <button id="reset-btn" class="btn btn-secondary">Reset Scenario</button>
+          <div id="comparison-hint" class="comparison-hint hidden">
+            Showing your adjusted regimen. Click Reset to return to baseline.
+          </div>
+        </div>
+
+        <!-- Feedback Card -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <h2 class="card-title">Feedback</h2>
+          <div id="feedback-panel">
+            <p class="text-muted">Run a simulation to see feedback here.</p>
+          </div>
+          <div id="teaching-panel"></div>
+        </div>
+      </div>
+
+      <!-- Right Column: AGP Visualization -->
+      <div class="right-panel">
+
+        <!-- AGP Composite Profile -->
+        <div class="card">
+          <h2 class="card-title">Ambulatory Glucose Profile</h2>
+          <div class="agp-chart-wrapper">
+            <canvas id="agp-chart"></canvas>
+          </div>
+
+          <!-- TIR Stacked Bar -->
+          <div class="tir-bar-container">
+            <div class="tir-bar-label">Time in Ranges</div>
+            <div id="tir-bar" class="tir-bar" role="img" aria-label="Time in glucose ranges stacked bar chart"></div>
+            <div class="tir-legend">
+              <span class="tir-legend-item"><span class="tir-legend-swatch" style="background:#8B0000"></span> Very Low (&lt;54)</span>
+              <span class="tir-legend-item"><span class="tir-legend-swatch" style="background:#DC2626"></span> Low (&lt;70)</span>
+              <span class="tir-legend-item"><span class="tir-legend-swatch" style="background:#16A34A"></span> In Range (70–180)</span>
+              <span class="tir-legend-item"><span class="tir-legend-swatch" style="background:#EAB308"></span> High (&gt;180)</span>
+              <span class="tir-legend-item"><span class="tir-legend-swatch" style="background:#EA580C"></span> Very High (&gt;250)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Table -->
+        <div class="card">
+          <h2 class="card-title">Glucose Statistics & Targets</h2>
+          <table class="metrics-table" aria-label="Glucose metrics">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Value</th>
+                <th>Target</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="metrics-table"></tbody>
+          </table>
+        </div>
+
+        <!-- Daily Thumbnails -->
+        <div class="card daily-thumbnails-wrapper">
+          <h2 class="card-title">Daily Glucose Profiles</h2>
+          <div id="daily-thumbnails" class="daily-thumbnails"></div>
+        </div>
+
+      </div><!-- /right-panel -->
+    </div><!-- /main-grid -->
+  </div><!-- /app-container -->
+
+  <!-- ─── Success Modal ──────────────────────────────────────────────── -->
+  <div id="success-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h3 id="modal-title">Scenario Complete!</h3>
+      <p>You've achieved target Time in Range (&ge;70%) with safe hypoglycemia levels (&lt;4% TBR, &lt;1% very low). This meets international consensus targets.</p>
+      <button id="modal-close-btn" class="btn btn-primary">Select a New Scenario</button>
+    </div>
+  </div>
+
+  <!-- ─── Application Entry Point ────────────────────────────────────── -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
