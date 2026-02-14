@@ -67,8 +67,8 @@ const scenarios = [
       age: 55, weight: '92 kg', type: 'Type 2 DM', a1c: '8.6%',
       notes: 'No nocturnal hypoglycemia reported. Dinner at 7 PM, bedtime snack occasionally.',
     },
-    trueNeeds:     { basal: 24, ic: 15, isf: 50 },
-    flawedRegimen: { basal: 18, ic: 15, isf: 50 },
+    trueNeeds:     { basal: 24, ic: 8, isf: 30 },
+    flawedRegimen: { basal: 18, ic: 8, isf: 30 },
     mealPlan: generateMeals([
       [{ hour: 8, carbs: 50 }, { hour: 13, carbs: 60 }, { hour: 19, carbs: 70 }],
       [{ hour: 8, carbs: 55 }, { hour: 13, carbs: 65 }, { hour: 19, carbs: 60 }],
@@ -100,7 +100,7 @@ const scenarios = [
       notes: 'Reports frequent "crashes" in the afternoon and before bed. Uses glucose tabs 4–5 times/week.',
     },
     trueNeeds:     { basal: 20, ic: 15, isf: 50 },
-    flawedRegimen: { basal: 20, ic: 20, isf: 30 },
+    flawedRegimen: { basal: 20, ic: 20, isf: 25 },
     mealPlan: generateMeals([
       [{ hour: 8, carbs: 80 }, { hour: 13, carbs: 90 }, { hour: 19, carbs: 60 }],
       [{ hour: 8, carbs: 75 }, { hour: 13, carbs: 85 }, { hour: 19, carbs: 65 }],
@@ -113,9 +113,9 @@ const scenarios = [
     teachingPoints: {
       pattern: 'Post-correction hypoglycemia (roller-coaster pattern)',
       keyInsight:
-        'The ISF is too aggressive (1:30 instead of 1:50), so each correction unit drops glucose more than expected, causing lows.',
+        'The ISF is too aggressive (1:25 instead of 1:50), so each correction unit drops glucose more than expected, causing lows.',
       adjustmentGuide:
-        'Increase the ISF (e.g., 30 → 50) AND decrease the I:C ratio (20 → 15). Both changes are needed to fix meal coverage and prevent over-correction.',
+        'Increase the ISF (e.g., 25 → 50) AND decrease the I:C ratio (20 → 15). Both changes are needed to fix meal coverage and prevent over-correction.',
       clinicalPearl:
         'The "roller-coaster" pattern (spike then crash) usually means the I:C ratio and ISF are both off. Fix the bolus first, then the correction factor.',
     },
@@ -220,7 +220,7 @@ const scenarios = [
       keyInsight:
         'Growth hormone and cortisol surge between 3–8 AM, increasing hepatic glucose output. The current basal dose cannot suppress this.',
       adjustmentGuide:
-        'Increase basal insulin to cover the dawn rise. If on a pump, consider a higher overnight basal rate from 3–8 AM.',
+        'Step 1: Increase overall basal insulin to address the baseline deficit (current dose is below true needs). Step 2: If early-morning rises persist after fixing baseline basal, consider a further increase or, on a pump, a higher overnight rate from 3–8 AM. Fix the baseline gap before targeting dawn phenomenon specifically.',
       clinicalPearl:
         'Distinguish dawn phenomenon (glucose rising after 3 AM from a normal nadir) from the Somogyi effect (rebound hyperglycemia after nocturnal hypoglycemia). The CGM pattern makes this distinction clear.',
     },

@@ -45,7 +45,6 @@ const els = {
   teachingPanel:    $('teaching-panel'),
   successModal:     $('success-modal'),
   modalCloseBtn:    $('modal-close-btn'),
-  viewToggle:       $('view-toggle'),
   comparisonHint:   $('comparison-hint'),
 };
 

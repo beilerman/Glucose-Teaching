@@ -1,8 +1,31 @@
 // ─── Educational Feedback Engine ────────────────────────────────────────────
 // Generates contextual teaching feedback based on the user's regimen vs the
-// scenario's true needs and the resulting metrics.
+// scenario's effective needs (accounting for stress/illness) and the resulting metrics.
 
 import { TARGET_TIR, TARGET_TBR, TARGET_CV } from './constants.js';
+
+// ─── Effective Needs (accounts for stress/illness) ──────────────────────────
+
+function getEffectiveNeedsForFeedback(scenario) {
+  const { trueNeeds } = scenario;
+  let sf = 1.0;
+  // Use peak stress factor so hints reflect the hardest phase
+  if (scenario.stressProfile && Array.isArray(scenario.stressProfile)) {
+    sf = Math.max(...scenario.stressProfile);
+  } else if (scenario.stressFactor) {
+    sf = scenario.stressFactor;
+  }
+  if (sf !== 1.0) {
+    return {
+      basal: trueNeeds.basal * sf,
+      ic: trueNeeds.ic / sf,
+      isf: trueNeeds.isf / sf,
+    };
+  }
+  return { ...trueNeeds };
+}
+
+// ─── Main Feedback Generator ────────────────────────────────────────────────
 
 /**
  * Generate structured feedback for the learner.
@@ -13,7 +36,7 @@ import { TARGET_TIR, TARGET_TBR, TARGET_CV } from './constants.js';
  * @returns {Object} feedback – { summary, details[], hints[], status }
  */
 export function generateFeedback(scenario, regimen, metrics, targets) {
-  const { trueNeeds, teachingPoints } = scenario;
+  const effectiveNeeds = getEffectiveNeedsForFeedback(scenario);
   const feedback = {
     summary: '',
     details: [],
@@ -58,10 +81,10 @@ export function generateFeedback(scenario, regimen, metrics, targets) {
     feedback.details.push(`Glucose variability (CV) is ${metrics.cv}% (target <36%). Large swings indicate instability.`);
   }
 
-  // ── Directional hints (compare user regimen to true needs) ────────────
+  // ── Directional hints (compare user regimen to effective needs) ──────
   if (!tirMet || !tbrSafe) {
     // Basal hints
-    const basalRatio = regimen.basal / trueNeeds.basal;
+    const basalRatio = regimen.basal / effectiveNeeds.basal;
     if (basalRatio < 0.85) {
       feedback.hints.push('Consider increasing the basal dose — fasting and overnight glucose are running high.');
     } else if (basalRatio > 1.2) {
@@ -69,7 +92,7 @@ export function generateFeedback(scenario, regimen, metrics, targets) {
     }
 
     // I:C ratio hints
-    const icRatio = regimen.ic / trueNeeds.ic;
+    const icRatio = regimen.ic / effectiveNeeds.ic;
     if (icRatio > 1.2) {
       feedback.hints.push('The I:C ratio may be too high (too few units per carb gram). Post-meal spikes suggest lowering it.');
     } else if (icRatio < 0.8) {
@@ -77,7 +100,7 @@ export function generateFeedback(scenario, regimen, metrics, targets) {
     }
 
     // ISF hints
-    const isfRatio = regimen.isf / trueNeeds.isf;
+    const isfRatio = regimen.isf / effectiveNeeds.isf;
     if (isfRatio < 0.75) {
       feedback.hints.push('The ISF may be too aggressive (too low). Each correction unit drops glucose more than intended, risking lows.');
     } else if (isfRatio > 1.3) {
@@ -85,11 +108,22 @@ export function generateFeedback(scenario, regimen, metrics, targets) {
     }
 
     // Scenario-specific contextual hints
-    if (scenario.stressFactor && basalRatio < 1.1) {
+    if ((scenario.stressFactor || scenario.stressProfile) && basalRatio < 1.1) {
       feedback.hints.push('During illness, insulin needs increase 20–40%. Consider a temporary increase in basal and correction frequency.');
     }
     if (scenario.dawnPhenomenon && basalRatio < 1.0) {
       feedback.hints.push('The early-morning glucose rise (dawn phenomenon) requires more basal coverage between 3–8 AM.');
+    }
+
+    // Exercise-specific feedback
+    const hasExercise = scenario.mealPlan && scenario.mealPlan.some(m => m.exercise);
+    if (hasExercise) {
+      feedback.hints.push('This scenario includes exercise days. Glucose patterns differ between exercise and rest days — look at the daily thumbnails. Consider day-specific strategies (reduce lunch bolus by 25–50%, add a pre-exercise snack) rather than changing the overall regimen.');
+    }
+
+    // Weekend-specific feedback
+    if (scenario.id === 'weekend-changes') {
+      feedback.hints.push('Weekend meals are larger and later than weekday meals. Compare weekday vs weekend daily thumbnails. More accurate carb counting or a more aggressive weekend I:C ratio may help more than changing the base regimen.');
     }
   }
 
